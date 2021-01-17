@@ -1,0 +1,29 @@
+[package]
+name = "pig"
+version = "0.1.0"
+authors = ["n01e0 <reoshiseki@gmail.com>"]
+edition = "2018"
+description = """
+
+ t         t           .Gt
+ ED.       Ej         j#W:
+ E#K:      E#,      ;K#f
+ E##W;     E#t    .G#D.
+ E#E##t    E#t   j#K;
+ E#ti##f   E#t ,K#f   ,GD;
+ E#t ;##D. E#t  j#Wi   E#t
+ E#ELLE##K:E#t   .G#D: E#t
+ E#L;;;;;;,E#t     ,K#fK#t
+ E#t       E#t       j###t
+ E#t       E#t        .G#t
+           ,;.          ;;
+
+PIG
+Process Injection Gear
+"""
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = "2.33.3"
+nix = "0.19.1"
