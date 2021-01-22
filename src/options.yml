@@ -1,0 +1,26 @@
+name: "pig"
+version: "0.1.0"
+authors: "n01e0 <reoshiseki@gmail.com>"
+about: "\
+\n\
+ t         t           .Gt\n\
+ ED.       Ej         j#W:\n\
+ E#K:      E#,      ;K#f\n\
+ E##W;     E#t    .G#D.\n\
+ E#E##t    E#t   j#K;\n\
+ E#ti##f   E#t ,K#f   ,GD;\n\
+ E#t ;##D. E#t  j#Wi   E#t\n\
+ E#ELLE##K:E#t   .G#D: E#t\n\
+ E#L;;;;;;,E#t     ,K#fK#t\n\
+ E#t       E#t       j###t\n\
+ E#t       E#t        .G#t\n\
+           ,;.          ;;\n\
+\n\
+Process Injection Gear\n\
+"
+
+args:
+    - pid:
+        help: "target process id"
+        takes_value: true
+        required: true
