@@ -1,6 +1,6 @@
 name: "pig"
 version: "0.1.0"
-authors: "n01e0 <reoshiseki@gmail.com>"
+author: "n01e0 <reoshiseki@gmail.com>"
 about: "\
 \n\
  t         t           .Gt\n\
@@ -14,7 +14,7 @@ about: "\
  E#L;;;;;;,E#t     ,K#fK#t\n\
  E#t       E#t       j###t\n\
  E#t       E#t        .G#t\n\
-           ,;.          ;;\n\
+\          ,;.          ;;\n\
 \n\
 Process Injection Gear\n\
 "
