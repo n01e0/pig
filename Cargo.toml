@@ -1,29 +1,15 @@
 [package]
+authors = ["n01e0 <reoshiseki@gmail.com>"]
+description = "\n t         t           .Gt\n ED.       Ej         j#W:\n E#K:      E#,      ;K#f\n E##W;     E#t    .G#D.\n E#E##t    E#t   j#K;\n E#ti##f   E#t ,K#f   ,GD;\n E#t ;##D. E#t  j#Wi   E#t\n E#ELLE##K:E#t   .G#D: E#t\n E#L;;;;;;,E#t     ,K#fK#t\n E#t       E#t       j###t\n E#t       E#t        .G#t\n           ,;.          ;;\n\nPIG\nProcess Injection Gear\n"
+edition = "2018"
 name = "pig"
 version = "0.1.0"
-authors = ["n01e0 <reoshiseki@gmail.com>"]
-edition = "2018"
-description = """
-
- t         t           .Gt
- ED.       Ej         j#W:
- E#K:      E#,      ;K#f
- E##W;     E#t    .G#D.
- E#E##t    E#t   j#K;
- E#ti##f   E#t ,K#f   ,GD;
- E#t ;##D. E#t  j#Wi   E#t
- E#ELLE##K:E#t   .G#D: E#t
- E#L;;;;;;,E#t     ,K#fK#t
- E#t       E#t       j###t
- E#t       E#t        .G#t
-           ,;.          ;;
-
-PIG
-Process Injection Gear
-"""
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+nix = "0.19.1"
+procfs = "*"
+
+[dependencies.clap]
+features = ["yaml"]
+version = "2.33.3"
 clap = { version="2.33.3", features=["yaml"]}
 nix = "0.19.1"
