@@ -34,12 +34,24 @@ fn main() {
     });
 
     match injector.attach() {
-        Ok(_) => println!("[+] attached to process (pid: {})", target_pid),
+        Ok(_) => {
+            println!("[+] attached to the process. (pid: {})", target_pid);
+            match injector.get_regs() {
+                Ok(reg) => {
+                    println!("[+] success get_regs");
+                    println!("{:#?}", reg);
+                },
+                Err(e) => {
+                    println!("[-] failed to get register from the process. {}", e);
+                }
+            }
+            injector.detach().unwrap();
+            println!("[+] detched from the process.");
+        },
         Err(e) => {
-            eprintln!("[-] failure attach to process (pid: {}). {}", target_pid, e);
+            eprintln!("[-] failed to attach to the process. (pid: {}). {}", target_pid, e);
             exit(1);
         }
     }
 
-    injector.detach().unwrap();
 }

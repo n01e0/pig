@@ -4,8 +4,11 @@ description = "\n t         t           .Gt\n ED.       Ej         j#W:\n E#K:  
 edition = "2018"
 name = "pig"
 version = "0.1.0"
-
 [dependencies]
+libc = "0.2.82"
 nix = "0.19.1"
 procfs = "0.9.1"
-clap = { version="2.33.3", features=["yaml"]}
+
+[dependencies.clap]
+features = ["yaml"]
+version = "2.33.3"
