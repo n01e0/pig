@@ -2,6 +2,7 @@ use nix::sys::ptrace;
 use nix::sys::signal::Signal;
 use nix::unistd::Pid;
 use procfs::process::{MemoryMap, Process};
+use std::ffi::c_void;
 
 pub use libc::user_regs_struct;
 pub use nix::Error;
@@ -45,7 +46,7 @@ impl Injector {
         self.set_regs(regs)
     }
 
-    pub fn get_writable_map(&self) -> Result<Option<MemoryMap>, ProcError> {
+    fn get_writable_map(&self) -> Result<Option<MemoryMap>, ProcError> {
         let mut maps = self
             .proc
             .maps()?
@@ -56,5 +57,13 @@ impl Injector {
             .collect::<Vec<MemoryMap>>();
         maps.reverse();
         Ok(maps.pop())
+    }
+
+    fn inject_code<T: Into<*mut c_void>>(
+        &self,
+        addr: ptrace::AddressType,
+        data: T,
+    ) -> Result<(), Error> {
+        unsafe { ptrace::write(self.pid, addr, data.into()) }
     }
 }
