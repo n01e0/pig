@@ -1,11 +1,11 @@
-use procfs::process::Process;
 use nix::sys::ptrace;
 use nix::sys::signal::Signal;
 use nix::unistd::Pid;
-use nix::Error;
+use procfs::process::{MemoryMap, Process};
 
-pub use procfs::ProcError;
 pub use libc::user_regs_struct;
+pub use nix::Error;
+pub use procfs::ProcError;
 
 #[derive(Debug)]
 pub struct Injector {
@@ -43,5 +43,18 @@ impl Injector {
         let mut regs = self.get_regs()?;
         regs.rip = rip;
         self.set_regs(regs)
+    }
+
+    pub fn get_writable_map(&self) -> Result<Option<MemoryMap>, ProcError> {
+        let mut maps = self
+            .proc
+            .maps()?
+            .into_iter()
+            .filter(|m| {
+                m.perms == "r-xp" && (m.address.1 - m.address.0) as usize >= self.code.len()
+            })
+            .collect::<Vec<MemoryMap>>();
+        maps.reverse();
+        Ok(maps.pop())
     }
 }

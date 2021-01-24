@@ -36,22 +36,28 @@ fn main() {
     match injector.attach() {
         Ok(_) => {
             println!("[+] attached to the process. (pid: {})", target_pid);
-            match injector.get_regs() {
-                Ok(reg) => {
-                    println!("[+] success get_regs");
-                    println!("{:#?}", reg);
-                },
+            match injector.get_writable_map() {
+                Ok(map) => {
+                    if let Some(mem) = map {
+                        println!("[+] success get_writable_map");
+                        println!("{:#?}", mem);
+                    } else {
+                        println!("[-] not found writable mamory map");
+                    }
+                }
                 Err(e) => {
                     println!("[-] failed to get register from the process. {}", e);
                 }
             }
             injector.detach().unwrap();
             println!("[+] detched from the process.");
-        },
+        }
         Err(e) => {
-            eprintln!("[-] failed to attach to the process. (pid: {}). {}", target_pid, e);
+            eprintln!(
+                "[-] failed to attach to the process. (pid: {}). {}",
+                target_pid, e
+            );
             exit(1);
         }
     }
-
 }
