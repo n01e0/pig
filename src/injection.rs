@@ -23,7 +23,6 @@ pub enum InjectorError {
     CanNotDetach(Error),
     CanNotGetRegister(Error),
     CanNotSetRegister(Error),
-    CanNotSetRIP(Error),
     CanNotGetMemoryMap(ProcError),
     CanNotInjectCode(Error),
 }
@@ -37,7 +36,6 @@ impl fmt::Display for InjectorError {
             CanNotDetach(e) => write!(f, "Can't detach from process.\n{}", e),
             CanNotGetRegister(e) => write!(f, "Can't get register from the process.\n{}", e),
             CanNotSetRegister(e) => write!(f, "Can't set register to the process.\n{}", e),
-            CanNotSetRIP(e) => write!(f, "Can't set rip to the process.\n{}", e),
             CanNotGetMemoryMap(e) => write!(f, "Can't get the process memory mapping.\n{}", e),
             CanNotInjectCode(e) => write!(f, "Can't inject to the process.\n{}", e),
         }
@@ -107,6 +105,13 @@ impl Injector {
     }
 
     pub fn inject(&self) -> Result<(), InjectorError> {
+        self.attach()?;
+        if let Some(map) = self.get_writable_map()? {
+            let addr = map.address.0;
+            self.inject_code(addr)?;
+            self.set_rip(addr)?;
+            self.detach()?;
+        }
         Ok(())
     }
 }

