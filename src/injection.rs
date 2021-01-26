@@ -3,6 +3,7 @@ use nix::sys::signal::Signal;
 use nix::unistd::Pid;
 use procfs::process::{MemoryMap, Process};
 use std::ffi::c_void;
+use std::fmt;
 
 pub use libc::user_regs_struct;
 pub use nix::Error;
@@ -13,6 +14,34 @@ pub struct Injector {
     pid: Pid,
     proc: Process,
     code: Vec<u8>,
+}
+
+#[derive(Debug)]
+pub enum InjectorError {
+    CanNotCreate(ProcError),
+    CanNotAttach(Error),
+    CanNotDetach(Error),
+    CanNotGetRegister(Error),
+    CanNotSetRegister(Error),
+    CanNotSetRIP(Error),
+    CanNotGetMemoryMap(ProcError),
+    CanNotInjectCode(Error),
+}
+
+impl fmt::Display for InjectorError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use InjectorError::*;
+        match self {
+            CanNotCreate(e) => write!(f, "Can't create Injector object (maybe invalid pid)\n{}", e),
+            CanNotAttach(e) => write!(f, "Can't attach the process.\n{}", e),
+            CanNotDetach(e) => write!(f, "Can't detach from process.\n{}", e),
+            CanNotGetRegister(e) => write!(f, "Can't get register from the process.\n{}", e),
+            CanNotSetRegister(e) => write!(f, "Can't set register to the process.\n{}", e),
+            CanNotSetRIP(e) => write!(f, "Can't set rip to the process.\n{}", e),
+            CanNotGetMemoryMap(e) => write!(f, "Can't get the process memory mapping.\n{}", e),
+            CanNotInjectCode(e) => write!(f, "Can't inject to the process.\n{}", e),
+        }
+    }
 }
 
 impl Injector {
@@ -59,11 +88,15 @@ impl Injector {
         Ok(maps.pop())
     }
 
-    fn inject_code<T: Into<*mut c_void>>(
+    fn inject_code(
         &self,
-        addr: ptrace::AddressType,
-        data: T,
+        addr: u64,
     ) -> Result<(), Error> {
-        unsafe { ptrace::write(self.pid, addr, data.into()) }
+        for (i, byte) in self.code.iter().enumerate() {
+            unsafe {
+                ptrace::write(self.pid, (addr + i as u64) as ptrace::AddressType, *byte as *mut c_void)?
+            }
+        }
+        Ok(())
     }
 }
