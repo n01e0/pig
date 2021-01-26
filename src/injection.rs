@@ -45,40 +45,44 @@ impl fmt::Display for InjectorError {
 }
 
 impl Injector {
-    pub fn new(target_pid: i32, shellcode: Vec<u8>) -> Result<Self, ProcError> {
-        Ok(Injector {
-            pid: Pid::from_raw(target_pid),
-            proc: Process::new(target_pid)?,
-            code: shellcode,
-        })
+    pub fn new(target_pid: i32, shellcode: Vec<u8>) -> Result<Self, InjectorError> {
+        match Process::new(target_pid) {
+            Ok(p) => Ok(Injector {
+                pid: Pid::from_raw(target_pid),
+                proc: p,
+                code: shellcode,
+            }),
+            Err(e) => Err(InjectorError::CanNotCreate(e)),
+        }
     }
 
-    pub fn attach(&self) -> Result<(), Error> {
-        ptrace::attach(self.pid)
+    pub fn attach(&self) -> Result<(), InjectorError> {
+        ptrace::attach(self.pid).map_err(|e| InjectorError::CanNotAttach(e))
     }
 
-    pub fn detach(&self) -> Result<(), Error> {
-        ptrace::detach(self.pid, Signal::SIGCONT)
+    pub fn detach(&self) -> Result<(), InjectorError> {
+        ptrace::detach(self.pid, Signal::SIGCONT).map_err(|e| InjectorError::CanNotDetach(e))
     }
 
-    fn get_regs(&self) -> Result<user_regs_struct, Error> {
-        ptrace::getregs(self.pid)
+    fn get_regs(&self) -> Result<user_regs_struct, InjectorError> {
+        ptrace::getregs(self.pid).map_err(|e| InjectorError::CanNotGetRegister(e))
     }
 
-    fn set_regs(&self, regs: user_regs_struct) -> Result<(), Error> {
-        ptrace::setregs(self.pid, regs)
+    fn set_regs(&self, regs: user_regs_struct) -> Result<(), InjectorError> {
+        ptrace::setregs(self.pid, regs).map_err(|e| InjectorError::CanNotSetRegister(e))
     }
 
-    fn set_rip(&self, rip: u64) -> Result<(), Error> {
+    fn set_rip(&self, rip: u64) -> Result<(), InjectorError> {
         let mut regs = self.get_regs()?;
         regs.rip = rip;
         self.set_regs(regs)
     }
 
-    fn get_writable_map(&self) -> Result<Option<MemoryMap>, ProcError> {
+    fn get_writable_map(&self) -> Result<Option<MemoryMap>, InjectorError> {
         let mut maps = self
             .proc
-            .maps()?
+            .maps()
+            .map_err(|e| InjectorError::CanNotGetMemoryMap(e))?
             .into_iter()
             .filter(|m| {
                 m.perms == "r-xp" && (m.address.1 - m.address.0) as usize >= self.code.len()
@@ -88,15 +92,21 @@ impl Injector {
         Ok(maps.pop())
     }
 
-    fn inject_code(
-        &self,
-        addr: u64,
-    ) -> Result<(), Error> {
+    fn inject_code(&self, addr: u64) -> Result<(), InjectorError> {
         for (i, byte) in self.code.iter().enumerate() {
             unsafe {
-                ptrace::write(self.pid, (addr + i as u64) as ptrace::AddressType, *byte as *mut c_void)?
+                ptrace::write(
+                    self.pid,
+                    (addr + i as u64) as ptrace::AddressType,
+                    *byte as *mut c_void,
+                )
+                .map_err(|e| InjectorError::CanNotInjectCode(e))?
             }
         }
+        Ok(())
+    }
+
+    pub fn inject(&self) -> Result<(), InjectorError> {
         Ok(())
     }
 }

@@ -32,5 +32,4 @@ fn main() {
         eprintln!("Cannot create injector object. {}", e);
         exit(1)
     });
-
 }
