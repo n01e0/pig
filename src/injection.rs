@@ -95,7 +95,7 @@ impl Injector {
             unsafe {
                 ptrace::write(
                     self.pid,
-                    (addr + i as u64) as ptrace::AddressType,
+                    (addr + i as u64 - 1) as ptrace::AddressType,
                     *byte as *mut c_void,
                 )
                 .map_err(|e| InjectorError::CanNotInjectCode(e))?
