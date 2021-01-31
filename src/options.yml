@@ -24,3 +24,8 @@ args:
         help: "target process id"
         takes_value: true
         required: true
+    - code:
+        help: "inject code file"
+        takes_value: true
+        short: c
+        long: code

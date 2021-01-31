@@ -1,5 +1,4 @@
 use nix::sys::ptrace;
-use nix::sys::signal::Signal;
 use nix::unistd::Pid;
 use procfs::process::{MemoryMap, Process};
 use std::ffi::c_void;
@@ -20,7 +19,7 @@ pub struct Injector {
 pub enum InjectorError {
     CanNotCreate(ProcError),
     CanNotAttach(Error),
-    CanNotDetach(Error),
+    CanNotCont(Error),
     CanNotGetRegister(Error),
     CanNotSetRegister(Error),
     CanNotGetMemoryMap(ProcError),
@@ -33,7 +32,7 @@ impl fmt::Display for InjectorError {
         match self {
             CanNotCreate(e) => write!(f, "Can't create Injector object (maybe invalid pid)\n{}", e),
             CanNotAttach(e) => write!(f, "Can't attach the process.\n{}", e),
-            CanNotDetach(e) => write!(f, "Can't detach from process.\n{}", e),
+            CanNotCont(e) => write!(f, "Can't continue the process.\n{}", e),
             CanNotGetRegister(e) => write!(f, "Can't get register from the process.\n{}", e),
             CanNotSetRegister(e) => write!(f, "Can't set register to the process.\n{}", e),
             CanNotGetMemoryMap(e) => write!(f, "Can't get the process memory mapping.\n{}", e),
@@ -58,8 +57,8 @@ impl Injector {
         ptrace::attach(self.pid).map_err(|e| InjectorError::CanNotAttach(e))
     }
 
-    pub fn detach(&self) -> Result<(), InjectorError> {
-        ptrace::detach(self.pid, Signal::SIGCONT).map_err(|e| InjectorError::CanNotDetach(e))
+    fn cont(&self) -> Result<(), InjectorError> {
+        ptrace::cont(self.pid, None).map_err(|e| InjectorError::CanNotCont(e))
     }
 
     fn get_regs(&self) -> Result<user_regs_struct, InjectorError> {
@@ -91,26 +90,41 @@ impl Injector {
     }
 
     fn inject_code(&self, addr: u64) -> Result<(), InjectorError> {
-        for (i, byte) in self.code.iter().enumerate() {
+        let mut code_raw = self.code.as_ptr() as u64;
+        let code_len = self.code.len() as u64;
+        for i in 0..code_len/8 {
             unsafe {
                 ptrace::write(
                     self.pid,
-                    (addr + i as u64 - 1) as ptrace::AddressType,
-                    *byte as *mut c_void,
+                    (addr + i as u64) as ptrace::AddressType,
+                    code_raw as *mut c_void,
                 )
-                .map_err(|e| InjectorError::CanNotInjectCode(e))?
+                .map_err(|e| InjectorError::CanNotInjectCode(e))?;
             }
+            code_raw += 8;
         }
         Ok(())
     }
 
-    pub fn inject(&self) -> Result<(), InjectorError> {
+    pub fn inject(&self, verbose: bool) -> Result<(), InjectorError> {
         self.attach()?;
+        if verbose {
+            println!("[+] attached to the process {}", self.pid.as_raw());
+        }
         if let Some(map) = self.get_writable_map()? {
             let addr = map.address.0;
+            if verbose {
+                println!("[+] got writable memory map at 0x{:x}", addr);
+            }
             self.inject_code(addr)?;
+            if verbose {
+                println!("[+] injected code");
+            }
             self.set_rip(addr)?;
-            self.detach()?;
+            if verbose {
+                println!("[+] jump to the code");
+            }
+            self.cont()?;
         }
         Ok(())
     }
