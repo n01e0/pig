@@ -3,3 +3,5 @@ Cargo.lock
 **/*.rs.bk
 rusty-tags.vi
 /z_tools
+code
+pig

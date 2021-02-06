@@ -1,3 +1,4 @@
+use bytes::Buf;
 use nix::sys::ptrace;
 use nix::unistd::Pid;
 use procfs::process::{MemoryMap, Process};
@@ -82,7 +83,7 @@ impl Injector {
             .map_err(|e| InjectorError::CanNotGetMemoryMap(e))?
             .into_iter()
             .filter(|m| {
-                m.perms == "r-xp" && (m.address.1 - m.address.0) as usize >= self.code.len()
+                m.perms == "r-xp" /*&& (m.address.1 - m.address.0) as usize >= self.code.len()*/
             })
             .collect::<Vec<MemoryMap>>();
         maps.reverse();
@@ -90,20 +91,30 @@ impl Injector {
     }
 
     fn inject_code(&self, addr: u64) -> Result<(), InjectorError> {
-        let mut code_raw = self.code.as_ptr() as u64;
-        let code_len = self.code.len() as u64;
-        for i in 0..code_len/8 {
+        let mut addr = addr;
+        let mut code = &self.aligned_code()[..];
+        for _ in 0..(code.len() / 8) {
+            let c = code.get_u64_le();
+            let b = Box::new(c);
+            let b = Box::into_raw(b) as *mut c_void;
             unsafe {
-                ptrace::write(
-                    self.pid,
-                    (addr + i as u64) as ptrace::AddressType,
-                    code_raw as *mut c_void,
-                )
-                .map_err(|e| InjectorError::CanNotInjectCode(e))?;
+                ptrace::write(self.pid, addr as ptrace::AddressType, b)
+                    .map_err(|e| InjectorError::CanNotInjectCode(e))?;
             }
-            code_raw += 8;
+            println!("[+] writing 0x{:x} to 0x{:x}", c, addr);
+            addr += 8;
         }
         Ok(())
+    }
+
+    fn aligned_code(&self) -> Vec<u8> {
+        let mut code = self.code.clone();
+        if code.len() / 8 != 0 {
+            for _ in 0..(code.len() % 8) + 1 {
+                code.push(0x90);
+            }
+        }
+        code
     }
 
     pub fn inject(&self, verbose: bool) -> Result<(), InjectorError> {

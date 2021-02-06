@@ -9,6 +9,7 @@ libc = "0.2.82"
 nix = "0.19.1"
 procfs = "0.9.1"
 caps = "0.5.0"
+bytes = "1.0.1"
 
 [dependencies.clap]
 features = ["yaml"]
